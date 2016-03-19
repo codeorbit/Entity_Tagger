@@ -45,7 +45,7 @@ def singleEntity(word):
  		
  		NODE_CACHE[word] = {}
 
-def relation_first_second(first_word,second_word,third_word = None,fourth_word = None):
+def relationFirstSecond(first_word,second_word,third_word = None,fourth_word = None):
 	
 	global ENTITY,AMB
 	global NODE_PROP
@@ -198,7 +198,7 @@ def querySegment(query):
 						wrd.append(None)
 				
 
-				prop = relation_first_second(wrd[0],wrd[1],wrd[2],wrd[3])
+				prop = relationFirstSecond(wrd[0],wrd[1],wrd[2],wrd[3])
 				
 				prev_relation = prop["rel_status"]
 				if prev_relation:
@@ -212,7 +212,7 @@ def querySegment(query):
 			
 			else:
 				
-				prop = relation_first_second(query[indx],query[indx+1])	
+				prop = relationFirstSecond(query[indx],query[indx+1])	
 				
 				prev_relation = prop["rel_status"]
 				if prev_relation:
@@ -249,8 +249,8 @@ def querySegment(query):
 	
 	return dic
 
-print querySegment("mt carmel indiana yahoo")
-print querySegment("google")
+#querySegment("mt carmel indiana yahoo")
+#querySegment("google")
 #querySegment(" google yahoo revolving cylinder engine wilmington ranger file manager mt carmel indiana ")
 
 #querySegment("enigma machine google enigma machine mount carmel yahoo enigma machine rotor central statistical yahoo enigma machine rotor")
