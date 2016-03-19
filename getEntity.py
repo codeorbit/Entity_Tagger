@@ -18,7 +18,7 @@ def wordPrefixCheck(word):
 
 		return False			
 
-def single_entity(word):
+def singleEntity(word):
 		
 	global ENTITY,NODE_PROP
 	word_label = "rd_new_"+word[0]
@@ -56,6 +56,7 @@ def relation_first_second(first_word,second_word,third_word = None,fourth_word =
 	second_word_label = "rd_new_"+second_word[0]
 	if wordPrefixCheck(second_word):
 		second_word_label = "rd_new_"+second_word[0:2]
+	flag = 0
 	if third_word is not None:
 		third_word_label = "rd_new_"+third_word[0]
 		if wordPrefixCheck(third_word):
@@ -64,6 +65,7 @@ def relation_first_second(first_word,second_word,third_word = None,fourth_word =
 		cc1="AND c.node_name = '%s'"%(str(third_word))
 		cc2=",c"
 		cc_rel = ",r2"
+		flag = 1
 	else:
 		third_word_label = ""
 		third_word = ""	
@@ -88,7 +90,7 @@ def relation_first_second(first_word,second_word,third_word = None,fourth_word =
 		))
 	
 	ret = graph.cypher.execute(query_second_word)
-
+	
 	if ret:
 
 		sent = ""
@@ -97,6 +99,9 @@ def relation_first_second(first_word,second_word,third_word = None,fourth_word =
 
 			rel = eval(ret[0][2]["rel"])   # to get the relation btwn first and second word 
 			sent = first_word+" "+second_word
+		
+		flag = 0   # for disambiguation resolver in entity 
+		
 		if third_word and fourth_word is "":
 			
 			ENTITY.remove(first_word+" "+second_word)
@@ -104,22 +109,40 @@ def relation_first_second(first_word,second_word,third_word = None,fourth_word =
 			rel = eval(ret[0][4]["rel"])   # to get the relation btwn first,second and third word 
 			rel_prev = eval(ret[0][3]["rel"])
 			
+			flag = 1
 			sent = first_word+" "+second_word+" "+third_word
-			print sent
+			# print sent
 
 		if third_word is not "" and fourth_word is not "":
-			rel = eval(ret[0][6]["rel"])
+			rel = eval(ret[0][5]["rel"])
+			rel_prev = eval(ret[0][4]["rel"])
+			rel_prev_prev = eval(ret[0][3]["rel"])
 			sent = first_word+" "+second_word+" "+third_word+" "+fourth_word
+			flag = 2
 		
+		# Checking common relationships in three nodes.
+
+		if flag ==1:
+			for k in rel.keys():
+				if k in rel_prev.keys():
+					rel.update({sent:rel[k]})
+
+		# Checking common realtionships in four nodes.
+
+		if flag ==2:
+			for k in rel.keys():
+				if k in rel_prev.keys() and k in rel_prev_prev.keys():
+					rel.update({sent:rel[k]})
+
 		if sent in rel.keys():
 			index = rel[sent]   # for getting index in node property
 			
-		 	
-			if (ret)[0][0]["wiki_page_"+str(0)] is None and (ret)[0][0]["wiki_page_"+str(index)] is None:
-				index =2 
-			if (ret)[0][0]["wiki_page_"+str(index)] is None:
+		 	if (ret)[0][0]["wiki_page_"+str(index)] is None:
 				index = 0
 						
+			if (ret)[0][0]["wiki_page_"+str(0)] is None and (ret)[0][0]["wiki_page_"+str(index)] is None:
+				index =2 
+			
 		 	node_dic["redirects"] = [(ret)[0][0]["redirects_"+str(index)]]
 		 
 		 	node_dic["wiki_page"] =  (ret)[0][0]["wiki_page_"+str(index)]
@@ -152,6 +175,10 @@ def relation_first_second(first_word,second_word,third_word = None,fourth_word =
 
 def querySegment(query):
 	global AMB
+	global NODE_PROP
+	NODE_PROP = {}
+	global ENTITY
+	ENTITY = []
 	org_query=query
 	prev_relation = False
 	temp_sent = ""
@@ -180,7 +207,7 @@ def querySegment(query):
 					
 					if temp_sent!="":
 					
-						single_entity(query[indx])
+						singleEntity(query[indx])
 					temp_sent=""		
 			
 			else:
@@ -196,16 +223,16 @@ def querySegment(query):
 	
 	elif len(query)==1:
 		
-		single_entity(query[0])
+		singleEntity(query[0])
 	
 	
 	if prev_relation is False:
 		last=query.pop()
-		single_entity(last)
+		singleEntity(last)
 		
 	
 	for i in AMB:
-		single_entity(i)
+		singleEntity(i)
 	#adding index positions for substr
 	for k in ENTITY:
 		i=org_query.find(k)
@@ -217,13 +244,13 @@ def querySegment(query):
 						
 	dic={}
 	#dic is for final dictionary
-	dic["entity_details"]=NODE_PROP
-	dic["segments"]=ENTITY
+	dic["entity_details"] = NODE_PROP
+	dic["segments"] = list(set(ENTITY))
 	
 	return dic
 
-#querySegment("google yahoo mount carmel indiana yahoo")
-
+print querySegment("mt carmel indiana yahoo")
+print querySegment("google")
 #querySegment(" google yahoo revolving cylinder engine wilmington ranger file manager mt carmel indiana ")
 
 #querySegment("enigma machine google enigma machine mount carmel yahoo enigma machine rotor central statistical yahoo enigma machine rotor")
